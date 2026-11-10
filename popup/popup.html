@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=400">
+  <title>TechByDsk — Suivi Nat</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="../assets/local-theme.css">
+</head>
+<body class="popup-page">
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="brand-lockup"><img class="brand-symbol" src="../assets/icon.svg" alt=""><div><div class="brand-name">TechBy<span>Dsk</span></div><div class="brand-caption">SUIVI NAT / LOCAL</div></div></div>
+        <h1>CONSOLE ANEF <span id="version" class="version">v2.14.2</span></h1>
+      </div>
+      <div class="header-actions">
+        <button id="btn-privacy" class="btn-icon" title="Masquer les informations sensibles">
+          <svg id="icon-eye-open" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+          </svg>
+          <svg id="icon-eye-closed" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:none">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18"></path>
+          </svg>
+        </button>
+        <button id="btn-settings" class="btn-icon" title="Paramètres">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Vue: Maintenance -->
+    <!-- Barre d'onglets multi-dossier (affichée uniquement si >=2 dossiers) -->
+    <nav id="dossier-tabs" class="dossier-tabs hidden" role="tablist" aria-label="Mes dossiers">
+      <div id="dossier-tabs-scroll" class="dossier-tabs-scroll">
+        <!-- Rempli dynamiquement par popup.js -->
+      </div>
+    </nav>
+
+    <div id="view-maintenance" class="view hidden">
+      <div class="card card-maintenance">
+        <div class="card-icon-wrapper maintenance">
+          <span class="card-icon">🔧</span>
+        </div>
+        <h2>Site en maintenance</h2>
+        <p>Le site ANEF est actuellement en maintenance. Veuillez réessayer plus tard.</p>
+        <button id="btn-retry" class="btn btn-primary">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <span>Réessayer</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Vue: Mot de passe expiré -->
+    <div id="view-password-expired" class="view hidden">
+      <div class="card card-warning card-dismissible">
+        <button id="btn-password-expired-close" class="card-close" type="button" title="Fermer" aria-label="Fermer">&times;</button>
+        <div class="card-icon-wrapper warning">
+          <span class="card-icon">🔑</span>
+        </div>
+        <h2>Mot de passe expir&eacute;</h2>
+        <p>Votre mot de passe ANEF a expir&eacute;. Connectez-vous sur le portail ANEF pour le renouveler, puis relancez une v&eacute;rification.</p>
+        <button id="btn-renew-password" class="btn btn-primary">
+          <span>Renouveler sur ANEF</span>
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+          </svg>
+        </button>
+        <button id="btn-password-expired-dismiss" class="btn btn-ghost btn-sm btn-dismiss-block" type="button">Fermer et ne plus afficher</button>
+        <p class="hint-text hint-dismiss">Une fois ferm&eacute;, cet avertissement ne r&eacute;appara&icirc;tra plus.</p>
+      </div>
+    </div>
+
+    <!-- Vue: Session expirée -->
+    <div id="view-not-connected" class="view hidden">
+      <div class="card card-warning">
+        <div class="card-icon-wrapper warning">
+          <span class="card-icon">🔒</span>
+        </div>
+        <h2>Session expirée</h2>
+        <p>Votre session ANEF a expiré. Reconnectez-vous pour actualiser votre statut.</p>
+        <p class="hint-text">
+          <a href="#" id="link-save-credentials" class="link-settings">Enregistrez vos identifiants</a> pour une connexion automatique.
+        </p>
+        <button id="btn-login" class="btn btn-primary">
+          <span>Se connecter à ANEF</span>
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Vue: Aucune donnée -->
+    <div id="view-no-data" class="view hidden">
+      <div class="card card-info">
+        <div class="card-icon-wrapper info">
+          <span class="card-icon">📊</span>
+        </div>
+        <h2>Aucune donnée</h2>
+        <p>Visitez votre espace ANEF pour récupérer votre statut.</p>
+        <button id="btn-check" class="btn btn-primary">
+          <span>Vérifier mon statut</span>
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Vue: Chargement -->
+    <div id="view-loading" class="view hidden">
+      <div class="card card-loading">
+        <h2 id="loading-title">Actualisation</h2>
+        <p id="loading-message" aria-live="polite">Ouverture de la page ANEF...</p>
+
+        <!-- Progression : trois segments, même langage visuel que le compteur
+             d'étape de la vue statut. Remplace le spinner + trois pastilles
+             numérotées, qui signalaient deux fois la même chose. -->
+        <div class="loading-steps" role="progressbar" aria-label="Progression de l'actualisation"
+             aria-valuemin="0" aria-valuemax="3" aria-valuenow="0">
+          <div class="loading-step" id="step-open"><span class="step-text">Ouverture</span></div>
+          <div class="loading-step" id="step-load"><span class="step-text">Chargement</span></div>
+          <div class="loading-step" id="step-data"><span class="step-text">Récupération</span></div>
+        </div>
+
+        <p class="loading-hint">Jusqu'à 45 secondes</p>
+
+        <!-- Citation : de quoi occuper l'attente sans la meubler bruyamment -->
+        <div class="quote-container">
+          <p class="quote-text" id="quote-text"></p>
+          <p class="quote-author" id="quote-author"></p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Bannière : erreur générique après refresh -->
+    <div id="refresh-error-banner" class="refresh-error-banner hidden">
+      <div class="refresh-error-banner-content">
+        <span class="refresh-error-banner-icon">⚠️</span>
+        <div class="refresh-error-banner-text">
+          <strong id="refresh-error-title">Actualisation échouée</strong>
+          <span id="refresh-error-message">—</span>
+        </div>
+      </div>
+      <div class="refresh-error-banner-actions">
+        <button id="btn-refresh-error-open-anef" class="btn btn-secondary btn-sm">Ouvrir ANEF</button>
+        <button id="btn-refresh-error-dismiss" class="btn btn-ghost btn-sm">Fermer</button>
+      </div>
+    </div>
+
+    <!-- Bannière : pas d'identifiants enregistrés pour le primaire -->
+    <div id="no-creds-banner" class="no-creds-banner hidden">
+      <button id="btn-no-creds-close" class="banner-close" type="button" title="Fermer" aria-label="Fermer">&times;</button>
+      <div class="no-creds-banner-content">
+        <span class="no-creds-banner-icon">🔑</span>
+        <div class="no-creds-banner-text">
+          <strong>Identifiants non enregistrés</strong>
+          <span>Si ta session ANEF expire, l'actualisation échouera. Enregistre-les pour l'auto-check.</span>
+        </div>
+      </div>
+      <button id="btn-no-creds-open-settings" class="btn btn-primary btn-sm">Configurer</button>
+    </div>
+
+    <!-- Bannière : refresh a ramené le mauvais dossier (session ANEF sur autre compte) -->
+    <div id="wrong-account-banner" class="wrong-account-banner hidden">
+      <div class="wrong-account-header">
+        <span class="wrong-account-icon">⚠️</span>
+        <div class="wrong-account-text">
+          <strong>Mauvais compte ANEF connecté</strong>
+          <div class="wrong-account-details">
+            Tu voulais actualiser <strong id="wrong-account-expected">—</strong> mais le site ANEF est connecté avec le dossier <strong id="wrong-account-fetched">—</strong>.
+          </div>
+          <div class="wrong-account-hint">
+            Pour actualiser le bon dossier, déconnecte-toi d'ANEF et reconnecte-toi avec les identifiants du dossier principal.
+          </div>
+        </div>
+      </div>
+      <div class="wrong-account-actions">
+        <button id="btn-wrong-account-logout" class="btn btn-primary btn-sm">Ouvrir ANEF pour se déconnecter</button>
+        <button id="btn-wrong-account-dismiss" class="btn btn-ghost btn-sm" title="Masquer">✕</button>
+      </div>
+    </div>
+
+    <!-- Bannière : changement de dossier détecté -->
+    <div id="dossier-switch-banner" class="dossier-switch-banner hidden">
+      <div class="dossier-switch-banner-content">
+        <span class="dossier-switch-banner-icon">🔀</span>
+        <div class="dossier-switch-banner-text">
+          <strong>Nouveau dossier détecté</strong>
+          <span>L'historique local a été réinitialisé pour éviter le mélange avec le dossier précédent.</span>
+        </div>
+      </div>
+      <div class="dossier-switch-banner-actions">
+        <button id="btn-dossier-switch-analyze" class="btn btn-primary btn-sm">Voir ce dossier</button>
+        <button id="btn-dossier-switch-dismiss" class="btn btn-ghost btn-sm" title="Masquer">✕</button>
+      </div>
+    </div>
+
+    <!-- Vue: Statut -->
+    <div id="view-status" class="view hidden">
+
+      <!-- Carte d'état : identité du statut, figure héros, compteur d'étape,
+           description, signaux. La bannière de clôture y est fondue (v2.12). -->
+      <div class="status-card">
+        <div class="state-top">
+          <span class="status-icon" id="status-icon">📋</span>
+          <div class="state-id">
+            <span class="status-phase" id="status-phase">—</span>
+            <button id="btn-copy-status" class="status-code-btn" title="Copier le code">
+              <span class="status-code" id="status-code">—</span>
+              <svg class="icon-copy" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <svg class="icon-check" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Figure héros : durée à l'étape courante, ou durée totale si clôturé -->
+        <div class="state-hero">
+          <span class="state-hero-value" id="state-hero-value">—</span>
+          <span class="state-hero-label" id="state-hero-label">à cette étape</span>
+        </div>
+
+        <!-- Compteur d'étape : 12 segments, un par étape -->
+        <div class="meter-head">
+          <span class="meter-step" id="status-step">Étape ?/12</span>
+          <span class="meter-since">depuis le <span id="status-date">—</span></span>
+        </div>
+        <div class="meter" id="step-meter" role="img" aria-label="Avancement du dossier"></div>
+
+        <!-- Récap de clôture, fondu dans la carte -->
+        <div id="closure-banner" class="closure-strip hidden">
+          <span class="closure-strip-icon">🎉</span>
+          <span class="closure-strip-text">
+            <strong class="closure-strip-title">Félicitations, vous êtes officiellement français(e) !</strong>
+            <span class="closure-strip-figures">Procédure terminée en <strong id="closure-total-value">—</strong><span id="closure-decret-figure"> · décret n° <strong id="closure-decret-num">—</strong></span></span>
+            <span class="closure-strip-foot">Dépôt le <span id="closure-depot-date">—</span> · plus aucun suivi nécessaire ✨</span>
+          </span>
+        </div>
+
+        <p class="status-description status-description-clamp" id="status-description">—</p>
+        <button id="btn-desc-more" class="desc-more hidden" type="button">Lire la suite</button>
+
+        <!-- Signaux d'état (décision disponible, pipeline décret, recours) -->
+        <div id="status-badges" class="signals hidden"></div>
+      </div>
+
+      <!-- Stats -->
+      <div id="stats-section" class="stats-section">
+        <div class="stats-cards">
+          <div id="stat-depot" class="stat-card">
+            <span class="stat-icon">📅</span>
+            <span class="stat-label">Dépôt</span>
+            <span class="stat-value" id="stat-depot-value">—</span>
+            <span class="stat-date" id="stat-depot-date">—</span>
+          </div>
+          <div id="stat-entretien" class="stat-card">
+            <span class="stat-icon">🗣️</span>
+            <span class="stat-label">Entretien</span>
+            <span class="stat-value" id="stat-entretien-value">—</span>
+            <span class="stat-date" id="stat-entretien-date">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerte dates manquantes -->
+      <a href="#" id="step-dates-alert" class="step-dates-alert hidden">
+        <div class="step-dates-alert-content">
+          <span class="step-dates-alert-pulse"></span>
+          <span class="step-dates-alert-text">
+            <strong>Historique incomplet</strong>
+            <span class="step-dates-alert-sub">Renseignez vos dates d'étapes passées pour enrichir les statistiques</span>
+          </span>
+        </div>
+        <span class="step-dates-alert-arrow">→</span>
+      </a>
+
+      <!-- Boutons d'action -->
+      <div class="actions">
+        <button id="btn-refresh" class="btn btn-primary">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <span>Actualiser</span>
+        </button>
+        <button id="btn-share" class="btn btn-secondary" title="Copier mon REX pour le partager">
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+          </svg>
+          <span>Copier le suivi</span>
+        </button>
+      </div>
+
+      <!-- Actions spécifiques aux dossiers secondaires (cachées par défaut) -->
+      <div id="secondary-actions" class="secondary-actions hidden">
+        <div class="secondary-actions-header">
+          <svg class="secondary-actions-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a10 10 0 1 0 10 10"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <div class="secondary-actions-text">
+            <strong>Dossier secondaire</strong>
+            <span>Actualisation automatique désactivée — gérable depuis le dossier principal</span>
+          </div>
+        </div>
+        <div class="secondary-actions-buttons">
+          <button id="btn-make-primary" class="btn-pill btn-pill-primary" title="Définir comme dossier principal (les identifiants enregistrés seront effacés)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </svg>
+            <span>Définir principal</span>
+          </button>
+          <button id="btn-remove-dossier" class="btn-pill btn-pill-danger" title="Retirer ce dossier de ma liste locale">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+            <span>Retirer</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Demande de modification du décret (DMR) — en tête : c'est la démarche
+           en cours, elle doit être visible sans faire défiler le popup -->
+      <details id="dmr-section" class="fold dmr-section hidden">
+        <summary class="fold-head">
+          <span class="fold-icon">📝</span>
+          <span class="fold-title">Modification du décret</span>
+          <span id="dmr-statut-badge" class="dmr-badge">—</span>
+          <svg class="fold-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </summary>
+        <div class="fold-body">
+        <p id="dmr-hint" class="dmr-hint">—</p>
+
+        <div class="dmr-meta">
+          <div class="dmr-meta-item">
+            <span class="dmr-meta-label">Déposée le</span>
+            <span class="dmr-meta-value" id="dmr-date-depot">—</span>
+          </div>
+          <div class="dmr-meta-item">
+            <span class="dmr-meta-label">En attente depuis</span>
+            <span class="dmr-meta-value" id="dmr-age">—</span>
+          </div>
+          <div class="dmr-meta-item" id="dmr-decret-item">
+            <span class="dmr-meta-label">Décret visé</span>
+            <span class="dmr-meta-value" id="dmr-decret">—</span>
+          </div>
+        </div>
+
+        <div id="dmr-etape-row" class="dmr-etape hidden">
+          Formulaire : <span id="dmr-etape">—</span>
+        </div>
+
+        <div id="dmr-enfants-block" class="dmr-block hidden">
+          <span class="dmr-block-title" id="dmr-enfants-title">Enfants ajoutés</span>
+          <ul id="dmr-enfants" class="dmr-list"></ul>
+        </div>
+
+        <div id="dmr-events-block" class="dmr-block hidden">
+          <span class="dmr-block-title">Suivi</span>
+          <ul id="dmr-events" class="dmr-list dmr-timeline"></ul>
+        </div>
+
+        <button id="btn-dmr-attestation" class="btn btn-secondary btn-sm dmr-attestation hidden">
+          <span>📄 Attestation de dépôt (PDF)</span>
+        </button>
+        <p id="dmr-attestation-stale" class="dmr-hint dmr-hint-muted hidden">
+          Lien d'attestation expiré — actualise pour le régénérer.
+        </p>
+        </div>
+      </details>
+
+      <!-- Détails -->
+      <details id="details-section" class="fold details-section hidden">
+        <summary class="fold-head">
+          <span class="fold-icon">🗂</span>
+          <span class="fold-title">Détails du dossier</span>
+          <svg class="fold-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </summary>
+        <div class="fold-body">
+        <div class="details-grid">
+          <div id="detail-dossier-id" class="detail-chip hidden">
+            <span class="detail-chip-label">Dossier</span>
+            <span class="detail-chip-value" id="detail-dossier-id-value">—</span>
+          </div>
+          <div id="detail-numero-national" class="detail-chip hidden">
+            <span class="detail-chip-label">N° National</span>
+            <span class="detail-chip-value" id="detail-numero-national-value">—</span>
+          </div>
+          <div id="detail-prefecture" class="detail-chip hidden">
+            <span class="detail-chip-label">Préfecture</span>
+            <span class="detail-chip-value" id="detail-prefecture-value">—</span>
+          </div>
+          <div id="detail-type-demande" class="detail-chip hidden">
+            <span class="detail-chip-label">Type</span>
+            <span class="detail-chip-value" id="detail-type-demande-value">—</span>
+          </div>
+          <div id="detail-entretien-lieu" class="detail-chip hidden">
+            <span class="detail-chip-label">Lieu</span>
+            <span class="detail-chip-value" id="detail-entretien-lieu-value">—</span>
+          </div>
+          <div id="detail-last-maj" class="detail-chip hidden">
+            <span class="detail-chip-label">Dernière MAJ ANEF</span>
+            <span class="detail-chip-value" id="status-last-check">—</span>
+          </div>
+          <div id="detail-decret" class="detail-chip detail-chip-success detail-chip-wide hidden">
+            <span class="detail-chip-label">🎉 Décret</span>
+            <span class="detail-chip-value" id="detail-decret-value">—</span>
+          </div>
+        </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Dernière et prochaine vérification -->
+      <!-- Dernière et prochaine vérification -->
+    <div class="foot">
+      <span class="foot-dot" id="auto-check-dot"></span>
+      <span class="foot-item">Vérifié <span id="last-check-date">—</span></span>
+      <span class="foot-sep" id="foot-sep">·</span>
+      <span class="foot-item" id="auto-check-next"><span id="auto-check-next-text">—</span></span>
+      <a href="#" id="auto-check-settings-link" class="foot-gear" title="Modifier dans les paramètres">⚙</a>
+    </div>
+
+    <div class="local-signature"><span class="local-mark" aria-hidden="true"></span>SUIVI LOCAL <span>·</span> <strong>TECHBYDSK</strong></div>
+
+  </div> <!-- Fin du .container -->
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

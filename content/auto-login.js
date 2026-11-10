@@ -1,0 +1,272 @@
+/**
+ * Script de connexion automatique - Extension ANEF Status Tracker
+ *
+ * Gère la connexion automatique au site ANEF :
+ * 1. Sur la page ANEF : clique sur "Se connecter"
+ * 2. Sur la page SSO : remplit le formulaire et soumet
+ */
+
+(function() {
+  'use strict';
+
+  const LOG_PREFIX = '[ANEF-AUTO-LOGIN]';
+
+  function log(msg, data) {
+    console.log(data !== undefined ? `${LOG_PREFIX} ${msg}` : `${LOG_PREFIX} ${msg}`, data || '');
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Utilitaires
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * Attend qu'un élément soit présent dans le DOM.
+   * Utilise MutationObserver (insensible au throttle setTimeout dans les
+   * fenêtres minimisées où backgroundRefresh s'exécute).
+   */
+  function waitForElement(selector, timeout = 15000) {
+    const immediate = document.querySelector(selector);
+    if (immediate) return Promise.resolve(immediate);
+
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (el) => {
+        if (done) return;
+        done = true;
+        observer.disconnect();
+        clearTimeout(timer);
+        resolve(el);
+      };
+
+      const observer = new MutationObserver(() => {
+        const el = document.querySelector(selector);
+        if (el) finish(el);
+      });
+
+      observer.observe(document.body || document.documentElement, {
+        childList: true, subtree: true
+      });
+
+      const timer = setTimeout(() => finish(document.querySelector(selector) || null), timeout);
+    });
+  }
+
+  /** Simule une saisie de texte */
+  function fillInput(input, text) {
+    input.focus();
+    input.value = text;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    input.dispatchEvent(new Event('blur', { bubbles: true }));
+  }
+
+  /** Envoie un message au content script */
+  function notifyExtension(type, data) {
+    window.postMessage({ source: 'ANEF_AUTO_LOGIN', type, data }, window.location.origin);
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Détection du type de page
+  // ─────────────────────────────────────────────────────────────
+
+  function detectPageType() {
+    const url = window.location.href;
+
+    if (url.includes('connexion-inscription')) {
+      return 'ANEF_LOGIN';
+    }
+
+    if (document.querySelector("input[name='username']") ||
+        document.querySelector("input[type='email']")) {
+      return 'SSO_LOGIN';
+    }
+
+    if (url.includes('mon-compte')) {
+      return 'LOGGED_IN';
+    }
+
+    return 'UNKNOWN';
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Étape 1 : Page ANEF - Cliquer sur "Se connecter"
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * Localise le bouton "Se connecter" quel que soit le design du site.
+   * - DSFR (nouveau, /usagers/) : <dsfr-button><button class="fr-btn">
+   * - PrimeNG (ancien) : <p-button class="fullWidthButton"><button>
+   * On filtre par texte pour éviter de cliquer "Créer un compte" et on
+   * ignore le lien "Se connecter" de l'en-tête au profit du bouton principal.
+   */
+  function findSeConnecterButton() {
+    const isSeConnecter = (el) => /se\s*connecter/i.test((el.textContent || '').trim());
+
+    // 1. Composant de bouton explicite (DSFR ou PrimeNG)
+    const comp = Array.from(
+      document.querySelectorAll('dsfr-button button, p-button.fullWidthButton button')
+    ).find(isSeConnecter);
+    if (comp) return comp;
+
+    // 2. Repli : n'importe quel bouton/lien dont le texte est "Se connecter"
+    const candidates = Array.from(document.querySelectorAll('button, a.fr-btn'));
+    return candidates.find(
+      (el) => (el.textContent || '').trim().toLowerCase() === 'se connecter'
+    ) || null;
+  }
+
+  async function clickSeConnecter() {
+    log('📍 Page ANEF détectée');
+
+    // Attendre qu'un bouton de connexion soit rendu (DSFR ou PrimeNG)
+    await waitForElement(
+      'dsfr-button button, p-button.fullWidthButton button, a.fr-btn',
+      10000
+    );
+
+    const btn = findSeConnecterButton();
+
+    if (!btn) {
+      log('❌ Bouton "Se connecter" non trouvé');
+      notifyExtension('NEED_CLICK_LOGIN', { error: 'Bouton non trouvé' });
+      return false;
+    }
+
+    log('👆 Clic sur "Se connecter"');
+    btn.click();
+    notifyExtension('LOGIN_CLICKED', {});
+
+    return true;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Étape 2 : Page SSO - Remplir le formulaire
+  // ─────────────────────────────────────────────────────────────
+
+  async function fillSSOForm(username, password) {
+    log('📍 Page SSO détectée');
+
+    const usernameInput = await waitForElement(
+      "input[name='username'], input[type='email'], input[id='username']",
+      10000
+    );
+
+    if (!usernameInput) {
+      log('❌ Champ identifiant non trouvé');
+      notifyExtension('LOGIN_FAILED', { error: 'Champ identifiant non trouvé' });
+      return false;
+    }
+
+    log('📝 Saisie identifiant');
+    fillInput(usernameInput, username);
+    await sleep(500);
+
+    const passwordInput = document.querySelector(
+      "input[name='password'], input[type='password']"
+    );
+
+    if (!passwordInput) {
+      log('❌ Champ mot de passe non trouvé');
+      notifyExtension('LOGIN_FAILED', { error: 'Champ mot de passe non trouvé' });
+      return false;
+    }
+
+    log('📝 Saisie mot de passe');
+    fillInput(passwordInput, password);
+    await sleep(500);
+
+    const submitBtn = document.querySelector(
+      "button.fr-btn[type='submit'], button[type='submit'], input[type='submit']"
+    );
+
+    if (!submitBtn) {
+      log('❌ Bouton de connexion non trouvé');
+      notifyExtension('LOGIN_FAILED', { error: 'Bouton submit non trouvé' });
+      return false;
+    }
+
+    log('👆 Soumission du formulaire');
+    submitBtn.click();
+    notifyExtension('LOGIN_SUBMITTED', {});
+
+    return true;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Point d'entrée
+  // ─────────────────────────────────────────────────────────────
+
+  let loginInProgress = false;
+
+  async function performAutoLogin(username, password) {
+    if (loginInProgress) {
+      log('⏳ Connexion déjà en cours');
+      return;
+    }
+    loginInProgress = true;
+    log('🚀 Démarrage connexion automatique');
+    log('📍 URL:', window.location.href);
+
+    const pageType = detectPageType();
+    log('📄 Type de page:', pageType);
+
+    try {
+      switch (pageType) {
+        case 'ANEF_LOGIN':
+          await clickSeConnecter();
+          break;
+
+        case 'SSO_LOGIN':
+          await fillSSOForm(username, password);
+          break;
+
+        case 'LOGGED_IN':
+          log('✅ Déjà connecté');
+          notifyExtension('LOGIN_SUCCESS', {});
+          break;
+
+        default:
+          log('⚠️ Page inconnue, tentative SSO');
+          const hasForm = document.querySelector("input[name='username'], input[type='email']");
+          if (hasForm) {
+            await fillSSOForm(username, password);
+          } else {
+            notifyExtension('LOGIN_FAILED', { error: 'Page non reconnue' });
+          }
+      }
+    } catch (error) {
+      log('❌ Erreur:', error.message);
+      notifyExtension('LOGIN_FAILED', { error: error.message });
+    } finally {
+      loginInProgress = false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Écoute des messages de l'extension
+  // ─────────────────────────────────────────────────────────────
+
+  window.addEventListener('message', async (event) => {
+    if (event.source !== window) return;
+    if (event.data?.source !== 'ANEF_EXTENSION') return;
+
+    if (event.data.type === 'DO_AUTO_LOGIN') {
+      const { username, password } = event.data.credentials || {};
+      if (username && password) {
+        await performAutoLogin(username, password);
+      } else {
+        log('❌ Identifiants manquants');
+        notifyExtension('LOGIN_FAILED', { error: 'Identifiants manquants' });
+      }
+    }
+  });
+
+  log('Script auto-login chargé');
+  // Signal de disponibilité pour éviter la race avec le content-script
+  notifyExtension('AUTO_LOGIN_READY', {});
+
+})();
